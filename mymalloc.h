@@ -1,22 +1,17 @@
 //
-// Created by alanfl and jmagnes on 10/3/19.
+// Created by alanfl and jmagnes362 on 10/3/19.
 //
 
-#ifndef _MYMALLOC_H
-#define _MYMALLOC_H
+#pragma once
 
 // Overrides system-based memory management calls
 #define malloc(x) mymalloc(x, __FILE__, __LINE__)
 #define free(x) myfree(x, __FILE__, __LINE__)
 
-// The "definition" of the metadata that is stored in the block
-// Note: This actual struct is not stored in the block, but rather this
-// declaration only serves as an abstraction what is required by the program
-// TODO find out way to "flatten" this
-typedef struct Node {
-    Node* next;
-    size_t size;
-} Node;
+// This is the header
+// Negative denotes that the block is not in use
+// Positive denotes that the adjacent block is in use
+short size;
 
 // Usage: This function serves as the primary signature to replace the system-based malloc
 // Accepts a block size and returns an address pointing to the start of the newly allocated block
@@ -46,5 +41,3 @@ static char* heap[4096];
 // Splits an open block into an allocated block, and then appends a free block with the remainder
 // of the space at the end
 void* split_block(void* block)
-
-#endif //_MYMALLOC_H

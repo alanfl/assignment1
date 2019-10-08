@@ -1,5 +1,5 @@
 //
-// Created by test on 10/5/19.
+// Created by alanfl and jmagnes362 on 10/5/19.
 //
 
 #ifndef _MEMGRIND_H
