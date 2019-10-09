@@ -14,8 +14,8 @@ int randomNum(int floor, int ceil){
 	return 0;
 }
 
-//return values of A-F will be the elapsed time in milliseconds.
-//Remove /1000 from elapsed calculation if microseconds wanted
+//return values of A-F will be the elapsed time in microseconds.
+//Add /1000 to elapsed calculation if milliseconds wanted
 
 //A: malloc() 1 byte and immediately free it - do this 150 times
 double malloc_and_free_150(){
@@ -33,7 +33,7 @@ double malloc_and_free_150(){
 	//find end time and return
 	gettimeofday(&end, NULL);
 	double elapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec)/1000.0);
+              ((end.tv_usec - start.tv_usec));
 
 	return elapsed;
 }
@@ -67,7 +67,7 @@ double malloc_store_free(){
 	//find end time, calculate length, return
 	gettimeofday(&end, NULL);
 	double elapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec)/1000.0);
+              ((end.tv_usec - start.tv_usec));
 
 	return elapsed;
 
@@ -120,7 +120,7 @@ double random_malloc_free_50(){
 	//find end time, calculate length, return
 	gettimeofday(&end, NULL);
 	double elapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec)/1000.0);
+              ((end.tv_usec - start.tv_usec));
 
 	return elapsed;
 }
@@ -137,7 +137,7 @@ double all_random(){
 	//find end time, calculate length, return
 	gettimeofday(&end, NULL);
 	double elapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec)/1000.0);
+              ((end.tv_usec - start.tv_usec));
 
 	return elapsed;
 }
@@ -154,7 +154,7 @@ double filler_1(){
 	//find end time, calculate length, return
 	gettimeofday(&end, NULL);
 	double elapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec)/1000.0);
+              ((end.tv_usec - start.tv_usec));
 
 	return elapsed;
 }
@@ -193,9 +193,9 @@ int main (int argc, char* argv[]){
 
 
 	for(i = 0; i < 6; i++){
-		printf("Sum %d = %f\n", i, sums[i]);
+		//printf("Sum %d = %f\n", i, sums[i]);
 		averages[i] = sums[i] / 100.0;
-		printf("Mean time for workload %c = %f milliseconds\n", ('A'+ i), averages[i]);
+		printf("Mean time for workload %c = %f microseconds\n", ('A'+ i), averages[i]);
 	}
 
 
