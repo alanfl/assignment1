@@ -4,6 +4,7 @@
 
 #pragma once
 #include <stdlib.h>
+#include <stdio.h>
 
 // Overrides system-based memory management calls
 #define malloc(x) mymalloc(x, __FILE__, __LINE__)
@@ -18,4 +19,4 @@ void* mymalloc(size_t size);
 
 // Usage: Accepts a pointer to the start of some allocated portion in the block and marks that portion as
 // no longer in use. Should then run coalesce to combine blocks with all adjacent unused neighbors.
-void* myfree(void* ptr);
+void myfree(void* ptr);
