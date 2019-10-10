@@ -7,11 +7,20 @@
 #include <stdlib.h>
 #include <time.h>
 
-
-//random number generator
-int randomNum(int floor, int ceil){
-
-	return 0;
+//finds a random freeable ptr and returns its index
+int random_free_index(int freed[], int mCount, int fCount){
+	int count = -1; //increment upon freeable ptr
+	int index = -1;
+	//random number, mCount = max index, fCount = #freed to prevent duplicates
+	int target = rand() % (mCount - fCount);
+	while(index < mCount){
+		if(count == target){
+			return index;
+		}else if(freed[index+1] == 0){ //if next is freeable, increment
+			count++;
+		}	
+		index++;	
+	}
 }
 
 //return values of A-F will be the elapsed time in microseconds.
@@ -84,8 +93,14 @@ double random_malloc_free_50(){
 	//keep track of counts and type
 	int mCount = 0;
 	int fCount = 0;
+	int i = 0;
 	int type;
-	char* ptrs [50];	
+	char* ptrs [50];
+	int freed [50];
+	//initialize all indexes to -1 to show not malloced or freed
+	for(i = 0; i < 50; i++){
+		freed[i] = -1;
+	}
 
 	//run until the 50th malloc
 	while(mCount < 50){
@@ -94,25 +109,32 @@ double random_malloc_free_50(){
 		//increment counters after each malloc or free
 		type = rand() % 2; //even will be malloc, odd free
 
+
+		//new method, random frees
 		//expected free and there is something to free	
 		if(type == 1 && (mCount!=fCount)){
-			free(ptrs[fCount]);
+			i = random_free_index(freed, mCount, fCount);
+			free(ptrs[i]);
+			freed[i] = 1;
 			fCount++;
 
 		//expected malloc or unable to free
 		}else{
 			char* test = malloc(1);
 			ptrs[mCount] = test;
+			freed[mCount] = 0;
 			mCount++;			
 		}
 		
 		//all 50 mallocs have occurred. free all remaining pointers
 		if(mCount == 50){
 			while(fCount < 50){
-				free(ptrs[fCount]);
+				i = random_free_index(freed, mCount, fCount);
+				free(ptrs[i]);
+				freed[i] = 1;
 				fCount++;
 			}
-		}
+		}	
 	}
 	
 	
@@ -126,11 +148,62 @@ double random_malloc_free_50(){
 }
 
 //D: Randomly choose between a randomly-sized malloc() or free()ing a pointer 
+//Keep track of each malloc so that all mallocs do not exceed your total memory 
+//capacity, malloc() 50 times, and free() all pointers.
+//Choose a random allocation size between 1 and 64 bytes
+
 double all_random(){
 	//find start time	
 	struct timeval start, end;
 	gettimeofday(&start, NULL);	
 
+	//keep track of counts and type
+	int mCount = 0;
+	int fCount = 0;
+	int type, size;
+	char* ptrs [50];
+	int i = 0;	
+	int freed [50];
+	//initialize all indexes to -1 to show not malloced or freed
+	for(i = 0; i < 50; i++){
+		freed[i] = -1;
+	}
+
+
+	//run until the 50th malloc
+	while(mCount < 50){
+
+		//randomly pick between malloc and free, if cannot free then malloc
+		//increment counters after each malloc or free
+		type = rand() % 2; //even will be malloc, odd free
+
+		//expected free and there is something to free	
+		if(type == 1 && (mCount!=fCount)){
+			i = random_free_index(freed, mCount, fCount);
+			free(ptrs[i]);
+			freed[i] = 1;
+			fCount++;
+
+		//expected malloc or unable to free
+		}else{
+			//random number 1-64 to malloc
+			size = rand() % 64 + 1;
+			char* test = malloc(size);
+			ptrs[mCount] = test;
+			freed[mCount] = 0;
+			mCount++;			
+		}
+		
+		//all 50 mallocs have occurred. free all remaining pointers
+		if(mCount == 50){
+			while(fCount < 50){
+				i = random_free_index(freed, mCount, fCount);
+				free(ptrs[i]);
+				freed[i] = 1;
+				fCount++;
+			}
+		}
+	}
 	
 
 
@@ -144,11 +217,13 @@ double all_random(){
 
 //E: Undetermined
 double filler_1(){
-//find start time	
+	//find start time	
 	struct timeval start, end;
 	gettimeofday(&start, NULL);	
 
 	
+	//implement workload
+
 
 
 	//find end time, calculate length, return
@@ -161,8 +236,22 @@ double filler_1(){
 
 //F: Undetermined
 double filler_2(){
+	//find start time
+	struct timeval start, end;
+	gettimeofday(&start, NULL);	
 
-	return 0.0;
+	
+	//implement workload
+
+
+
+
+	//find end time, calculate length, return
+	gettimeofday(&end, NULL);
+	double elapsed = (end.tv_sec - start.tv_sec) + 
+              ((end.tv_usec - start.tv_usec));
+
+	return elapsed;
 }
 
 
@@ -180,7 +269,8 @@ int main (int argc, char* argv[]){
 	//loop that runs all workloads back to back 100 times and calculates 
 	//mean runtime
 	int i = 0;
-	double sums [] = {0.0,0.0,0.0,0.0,0.0,0.0};
+	//sum was occassionaly overflowing on long runtimes
+	long long sums [] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
 	double averages [6];
 	for(i = 0; i < 100; i++){
 		sums[0] += malloc_and_free_150();
@@ -195,7 +285,7 @@ int main (int argc, char* argv[]){
 	for(i = 0; i < 6; i++){
 		//printf("Sum %d = %f\n", i, sums[i]);
 		averages[i] = sums[i] / 100.0;
-		printf("Mean time for workload %c = %f microseconds\n", ('A'+ i), averages[i]);
+		printf("Mean time for workload %c = %lf microseconds\n", ('A'+ i), averages[i]);
 	}
 
 
