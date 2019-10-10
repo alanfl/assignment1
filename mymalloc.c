@@ -16,10 +16,6 @@ const short header_size = sizeof(block_size);
 // This constant refers to the block size, and is abstracted in case the managed block size ever changes
 const int heap_size = 4096;
 
-// "Managed" block
-// Should be initialized as all 0s, since it's located in the BSS
-static char heap[heap_size];
-
 // Usage: Traverses a linked list of block headers and returns a pointer to the first block that is meets the size
 // requirement and is also not in use.
 void* first_fit(size_t size);
