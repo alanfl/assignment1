@@ -5,20 +5,22 @@
 #include "mymalloc.h"
 
 // This is the header that precedes all managed blocks.
-// A negative value denotes that the block is not in use.
-// A positive value denotes that the block is in use.
+// A positive value denotes that the block is not in use.
+// A negative value denotes that the block is in use.
 // All size values are in bytes.
-short block_size;
+typedef struct header_t {
+    short size;
+} header_t;
 
 // This constant refers to the size of the header, and should be referenced when calculating block jumps
-const short header_size = sizeof(block_size);
+const short header_size = sizeof(header_t);
 
 // This constant refers to the block size, and is abstracted in case the managed block size ever changes
 const int heap_size = 4096;
 
 // Usage: Traverses a linked list of block headers and returns a pointer to the first block that is meets the size
 // requirement and is also not in use.
-void* first_fit(size_t size);
+void* first_fit(short size);
 
 // Usage: Traverses a linked list of block headers and coalesces blocks that are both adjacent to each other, and freed.
 // Note: Coalescing will maintain lower addresses, and adjacent higher addresses will be absorbed
@@ -27,77 +29,92 @@ void coalesce();
 // Splits an free block into two blocks, one with the specified size
 // and then appends a free block with the remainder of the space at the end
 // Returns the block with the specified size
-void* split_block(char* ptr, short size);
+void* split_block(header_t * header, short size);
 
 // Usage: Primarily for usage of traversing a flattened linked list. Accepts a ptr to the current block and returns
 // A ptr to the next adjacent block, or NULL if it exceeds the block's size.
-void* get_next_block(const char* ptr);
+void* get_next_block(const header_t * header);
 
-// todo
-void* mymalloc(size_t size) {
+void* mymalloc(short size, char* file_name, int line_num) {
+
+    // Validate size
+    if(size < 1) {
+        printf("Error in %s at line %d: Invalid size error: Requested size was invalid.", file_name, line_num);
+    }
 
     // Start at the head
-    char* ptr = &heap[0];
+    header_t * curr_header = (header_t *) heap;
 
     // Check if this is the first allocation
-    if(*ptr == 0) {
+    if(curr_header->size == 0) {
         // Insert initial node
-        *((short*)ptr) = (heap_size - header_size) * -1;
+        curr_header->size = (short) (heap_size - header_size);
     }
 
     // Find first block that is large enough to meet request
-    ptr = first_fit(size);
+    curr_header = first_fit(size);
 
     // Check if first fit was able to find a block at all
-    if(!ptr) {
+    if(!curr_header) {
+        printf("Error in %s at line %d: Out of space error: Heap is out of space.", file_name, line_num);
         return NULL;
     }
 
     // Block is larger, split into specified size and remainder
-    if(*ptr > size) {
-        ptr = split_block(ptr, size);
+    if(curr_header->size > size) {
+        curr_header = split_block(curr_header, size);
     }
 
-    return ptr + header_size;
+    // Mark newly allocated block as in use
+    curr_header->size *= -1;
+
+    return curr_header + header_size;
 }
 
-// todo
-void myfree(void* ptr) {
+void myfree(void* ptr, char* file_name, int line_num) {
     // Start at head
-    char* heap_ptr = &heap[0];
+    header_t * curr_header = (header_t *) heap;
 
     // Iterate list
-    while(heap_ptr != NULL) {
+    while(curr_header != NULL) {
 
-        // If ptr matches any address in the list that has been allocated, then mark it as free only if it is not in use
-        if((heap_ptr + header_size) == ptr) {
-            if(*heap_ptr > 0) {
-                *((short*)heap_ptr) *= -1;
+        // If ptr matches any address in the list that has been allocated, then mark it as free only if it is in use
+        if((curr_header + header_size) == ptr) {
+            if(curr_header->size < 0) {
+                curr_header->size *= -1;
                 coalesce();
                 return;
             }
-            else
-                printf("%s", "Error: Redundant free error: Block is not allocated.");
+            else {
+                printf("Error in %s at line %d: Redundant free error: Block is not allocated.", file_name, line_num);
+                return;
+            }
         }
 
-        heap_ptr = get_next_block(heap_ptr);
+        curr_header = get_next_block(curr_header);
     }
 
     // If not returned, then the provided ptr was invalid
-    printf("%s", "Error: Invalid pointer error: Provided pointer was either not allocated or not a pointer.");
+    printf("Error in %s at line %d: Invalid pointer error: Provided pointer was either not allocated or not a pointer.", file_name, line_num);
 }
 
-void* first_fit(size_t requested_size) {
+void* first_fit(short requested_size) {
+    // Check that requested size is valid
+    if( requested_size <= 0) {
+        printf("Error: Invalid size error: Requested size was invalid.");
+        return NULL;
+    }
+
     // Begin at head of allocated block
-    char* ptr = &heap[0];
+    header_t * curr_header = (header_t *) heap;
 
     // Traverse list
-    while(ptr != NULL) {
-        // This block is of proper size AND not in use, return this block
-        if( abs( *ptr ) >= requested_size && (short) *ptr < 0)
-            return ptr;
+    while(curr_header != NULL) {
+        // This block is of adequate size AND not in use, return this header
+        if( curr_header->size > 0 && (curr_header->size) >= requested_size )
+            return curr_header;
         else
-            get_next_block(ptr);
+            curr_header = get_next_block(curr_header);
     }
 
     // Could not find a block of appropriate size, return null
@@ -106,57 +123,62 @@ void* first_fit(size_t requested_size) {
 
 void coalesce() {
     // Begin at head of allocated block
-    char * ptr = &heap[0];
-    char * next_ptr = get_next_block(ptr);
+    // Also track the next block over for coalescing purposes
+    header_t * curr_header = (header_t *) heap;
+    header_t * next_header = get_next_block(curr_header);
 
-    // Traverse list until end, ptr should remain behind, next peeks into next in case a coalesce is necessary
-    while(ptr != NULL && next_ptr != NULL) {
+    // Traverse list until end, next_header should remain ahead in case a coalesce is necessary
+    while(curr_header != NULL && next_header != NULL) {
         // This block is free and so is the next, coalesce next into this one
-        if((signed short) *ptr < 0 && (signed short) *next_ptr < 0) {
-            short ptr_size = (short) abs(*ptr);
-            short next_ptr_size = (short) abs(*next_ptr);
-
+        if( curr_header->size >= 0 && next_header->size >= 0) {
             // Also mark this ptr as unused
-            *((short*)ptr) = (short) (ptr_size + next_ptr_size + header_size) * -1;
+            curr_header->size = (short) (curr_header->size + next_header->size + header_size);
 
             // Move the next block forward in case the next block is able to be coalesced
-            next_ptr = get_next_block(ptr);
+            next_header = get_next_block(curr_header);
         }
         // Not able to coalesce, move pointers forward
         else {
-            ptr = get_next_block(ptr);
-            next_ptr = get_next_block(ptr);
+            curr_header = get_next_block(curr_header);
+            next_header = get_next_block(curr_header);
         }
     }
 }
 
-void* split_block(char* ptr, short size) {
-    short original_size = (short) abs(*ptr);
+void* split_block(header_t * header, short size) {
+    short original_size = header->size;
 
     // Check if able to insert a new header into the remainder, if so, split this block
     if( (original_size - size) >= header_size) {
-        *((short*)ptr) = (short) (size * -1);
+        header->size = (short) size;
 
-        char* next = get_next_block(ptr);
-        *((short*)next) = (short) (original_size - size - header_size) * -1;
+        header_t * next = get_next_block(header);
+
+        // Check that we didn't go out of bounds for some reason
+        if(next) {
+            next->size = (short) (original_size - size - header_size);
+        }
+        else {
+            printf("Error: out of bounds in split_block.");
+            return NULL;
+        }
     }
 
     // Otherwise, new allocated block will simply be larger
     else {
-        *((short*)ptr) = (short) (original_size * -1);
+        header->size = (short) original_size;
     }
 
-    return ptr;
+    return header;
 }
 
-void* get_next_block(const char* ptr) {
-    int index = 0;
-    short ptr_size = (short) *ptr;
+void* get_next_block(const header_t * header) {
+    short size = (short) abs(header->size);
+    header_t * next_header = (header_t *) (header + size + header_size);
 
-    index = ptr_size + header_size;
-
-    if(index > block_size)
+    // next_header is out of bounds
+    if(next_header >= (header_t *) &heap[4096])
         return NULL;
     else
-        return &heap[index];
+        return next_header;
 }
