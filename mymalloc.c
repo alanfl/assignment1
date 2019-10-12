@@ -2,7 +2,8 @@
 // Created by alanfl and jmagnes362 on 10/8/19.
 //
 
-#include "mymalloc.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 // This is the header that precedes all managed blocks.
 // A positive value denotes that the block is not in use.
@@ -12,11 +13,14 @@ typedef struct header_t {
     short size;
 } header_t;
 
+// Defines the heap block
+static char heap[4096];
+
 // This constant refers to the size of the header, and should be referenced when calculating block jumps
-const short header_size = sizeof(header_t);
+const short header_size = (short) sizeof(header_t);
 
 // This constant refers to the block size, and is abstracted in case the managed block size ever changes
-const int heap_size = 4096;
+const short heap_size = (short) 4096;
 
 // Usage: Traverses a linked list of block headers and returns a pointer to the first block that is meets the size
 // requirement and is also not in use.
@@ -35,24 +39,24 @@ void* split_block(header_t * header, short size);
 // A ptr to the next adjacent block, or NULL if it exceeds the block's size.
 void* get_next_block(const header_t * header);
 
-void* mymalloc(short size, char* file_name, int line_num) {
+// Usage: Dumps all information in the heap
+void dump_heap();
+
+char *init_heap();
+
+void* mymalloc(size_t size, char* file_name, int line_num) {
 
     // Validate size
-    if(size < 1) {
+    if(size < 1 || size > (heap_size - header_size)) {
         printf("Error in %s at line %d: Invalid size error: Requested size was invalid.", file_name, line_num);
+        return NULL;
     }
 
     // Start at the head
-    header_t * curr_header = (header_t *) heap;
-
-    // Check if this is the first allocation
-    if(curr_header->size == 0) {
-        // Insert initial node
-        curr_header->size = (short) (heap_size - header_size);
-    }
+    header_t *curr_header = (header_t *)init_heap();
 
     // Find first block that is large enough to meet request
-    curr_header = first_fit(size);
+    curr_header = first_fit((short) size);
 
     // Check if first fit was able to find a block at all
     if(!curr_header) {
@@ -68,24 +72,23 @@ void* mymalloc(short size, char* file_name, int line_num) {
     // Mark newly allocated block as in use
     curr_header->size *= -1;
 
-    return curr_header + header_size;
+    return ((void *)curr_header) + header_size;
 }
 
 void myfree(void* ptr, char* file_name, int line_num) {
     // Start at head
-    header_t * curr_header = (header_t *) heap;
+    header_t *curr_header = (header_t *) init_heap();
 
     // Iterate list
     while(curr_header != NULL) {
 
         // If ptr matches any address in the list that has been allocated, then mark it as free only if it is in use
-        if((curr_header + header_size) == ptr) {
+        if( ((void *)curr_header + header_size) == ptr ) {
             if(curr_header->size < 0) {
                 curr_header->size *= -1;
                 coalesce();
                 return;
-            }
-            else {
+            } else {
                 printf("Error in %s at line %d: Redundant free error: Block is not allocated.", file_name, line_num);
                 return;
             }
@@ -99,14 +102,8 @@ void myfree(void* ptr, char* file_name, int line_num) {
 }
 
 void* first_fit(short requested_size) {
-    // Check that requested size is valid
-    if( requested_size <= 0) {
-        printf("Error: Invalid size error: Requested size was invalid.");
-        return NULL;
-    }
-
     // Begin at head of allocated block
-    header_t * curr_header = (header_t *) heap;
+    header_t * curr_header = (header_t *)heap;
 
     // Traverse list
     while(curr_header != NULL) {
@@ -124,8 +121,8 @@ void* first_fit(short requested_size) {
 void coalesce() {
     // Begin at head of allocated block
     // Also track the next block over for coalescing purposes
-    header_t * curr_header = (header_t *) heap;
-    header_t * next_header = get_next_block(curr_header);
+    header_t *curr_header = (header_t *)heap;
+    header_t *next_header = get_next_block(curr_header);
 
     // Traverse list until end, next_header should remain ahead in case a coalesce is necessary
     while(curr_header != NULL && next_header != NULL) {
@@ -146,39 +143,52 @@ void coalesce() {
 }
 
 void* split_block(header_t * header, short size) {
-    short original_size = header->size;
+    header_t *next = header;
 
     // Check if able to insert a new header into the remainder, if so, split this block
-    if( (original_size - size) >= header_size) {
-        header->size = (short) size;
+    if( (header->size - size) > header_size) {
+        header->size = header->size - size - header_size;
 
-        header_t * next = get_next_block(header);
+        next = get_next_block(header);
 
         // Check that we didn't go out of bounds for some reason
-        if(next) {
-            next->size = (short) (original_size - size - header_size);
-        }
-        else {
-            printf("Error: out of bounds in split_block.");
-            return NULL;
-        }
+        next->size = size;
     }
 
-    // Otherwise, new allocated block will simply be larger
-    else {
-        header->size = (short) original_size;
-    }
-
-    return header;
+    return next;
 }
 
 void* get_next_block(const header_t * header) {
-    short size = (short) abs(header->size);
-    header_t * next_header = (header_t *) (header + size + header_size);
+    short size = (short)abs(header->size);
+    header_t *next_header = (header_t *) ((void*)header + size + header_size);
 
     // next_header is out of bounds
-    if(next_header >= (header_t *) &heap[4096])
+    if((char *)next_header >= (heap + heap_size))
         return NULL;
     else
         return next_header;
+}
+
+void dump_heap() {
+    header_t *header = (header_t *)init_heap();
+    printf("Dumping heap: ");
+    while(header != NULL) {
+        printf("%hi, ", header->size);
+        header = get_next_block(header);
+    }
+
+    printf("\n");
+}
+
+char* init_heap() {
+    // Start at the head
+    header_t *curr_header = (header_t *) heap;
+
+    // Check if this is the first allocation
+    if(curr_header->size == 0) {
+        // Insert initial node
+        curr_header->size = heap_size - header_size;
+    }
+
+    return heap;
 }
