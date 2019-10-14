@@ -1,5 +1,23 @@
+Workloads E and F were up to us to design. The following is an explanation of
+the workloads that we decided to create.
+
 Workload E: 
-This workload ensures that blocks of data that are freed are able to coalesce correctly. To do this, the workload will request 3,200 bytes in the form of 50, 64 byte malloc calls. Including metadata, this is 3,300 of the total 4094 (4096 - first metadata) bytes available for use. The first 25 malloc calls will be freed, creating 1650 bytes of memory that are now available. If free() correctly coalesced these chunks of 64 bytes, it is now possible to reuse this space. To make sure that the chunks coalesced, 1300 bytes in the form of 10, 128 byte malloc calls. This will ensure that there are not 25, 64 byte chunks but rather one 1650 byte chunk. If the space did not coalesce correctly, then malloc will attempt to allocate the 1650 bytes to the remaining 796 bytes, and will run out of memory. Finally, all pointers will be freed.
+This workload ensures that blocks of data that are freed are able to coalesce
+correctly. To do this, the workload will request 3,200 bytes in the form of 50, 64 
+byte malloc calls. Including metadata, this is 3,300 of the total 4094 (4096 - 
+first metadata) bytes available for use. The first 25 malloc calls will be freed, 
+creating 1650 bytes of memory that are now available. If free() correctly 
+coalesced these chunks of 64 bytes, it is now possible to reuse this space. To 
+make sure that the chunks coalesced, 1300 bytes in the form of 10, 128 byte malloc 
+calls. This will ensure that there are not 25, 64 byte chunks but rather one 1650 
+byte chunk.If the space did not coalesce correctly, then malloc will attempt to 
+allocate the 1650 bytes to the remaining 796 bytes, and will run out of memory. 
+Finally, all pointers will be freed.
 
 Workload F:
-This workload was created to test using all 4096 bytes. Mallocs of random size in the range of 1-64 bytes will be called until all space is used or there is not enough space to perform another malloc call. If the next malloc will put the total memory used over the limit of 4094 (4096 - first metadata), then the exact amount of remaining bytes will be malloced. After all possible mallocs, all pointers will be freed.
+This workload was created to test using all 4096 bytes. Mallocs of random size in 
+the range of 1-64 bytes will be called until all space is used or there is not 
+enough space to perform another malloc call. If the next malloc will put the total 
+memory used over the limit of 4094 (4096 - first metadata), then the exact amount 
+of remaining bytes will be malloced. After all possible mallocs, all pointers will 
+be freed.
