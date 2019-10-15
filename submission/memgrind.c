@@ -28,7 +28,7 @@ int random_free_index(int freed[], int mCount, int fCount){
 //Add /1000 to elapsed calculation if milliseconds wanted
 
 //A: malloc() 1 byte and immediately free it - do this 150 times
-double malloc_and_free_150(){
+long malloc_and_free_150(){
 	//find start time
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
@@ -42,8 +42,9 @@ double malloc_and_free_150(){
 
 	//find end time and return
 	gettimeofday(&end, NULL);
-	double timeElapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec));
+	long seconds = end.tv_sec - start.tv_sec;
+	long microseconds = end.tv_usec - start.tv_usec;
+	long timeElapsed = ((seconds * 1000000) + microseconds);
 
 	return timeElapsed;
 }
@@ -54,7 +55,7 @@ double malloc_and_free_150(){
 //Once you've malloc()ed 50 byte chunks, then free() the 50 1 byte pointers
 //one by one.
 
-double malloc_store_free(){	
+long malloc_store_free(){	
 	//find start time	
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
@@ -76,8 +77,9 @@ double malloc_store_free(){
 	
 	//find end time, calculate length, return
 	gettimeofday(&end, NULL);
-	double timeElapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec));
+	long seconds = end.tv_sec - start.tv_sec;
+	long microseconds = end.tv_usec - start.tv_usec;
+	long timeElapsed = ((seconds * 1000000) + microseconds);
 
 	return timeElapsed;
 
@@ -86,7 +88,7 @@ double malloc_store_free(){
 //C: Randomly choose between a 1 byte malloc() or freeing a 1 byte pointer
 //malloc 50 times, if reach 50 mallocs free all, keep track of freed pointers
 
-double random_malloc_free_50(){
+long random_malloc_free_50(){
 	//find start time	
 	struct timeval start, end;
 	gettimeofday(&start, NULL);	
@@ -142,8 +144,9 @@ double random_malloc_free_50(){
 		
 	//find end time, calculate length, return
 	gettimeofday(&end, NULL);
-	double timeElapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec));
+	long seconds = end.tv_sec - start.tv_sec;
+	long microseconds = end.tv_usec - start.tv_usec;
+	long timeElapsed = ((seconds * 1000000) + microseconds);
 
 	return timeElapsed;
 }
@@ -155,7 +158,7 @@ double random_malloc_free_50(){
 //Worst possible scenario is 50 mallocs of max size which = 3300 bytes. This
 //cannot exceed the 4096 bytes available
 
-double all_random(){
+long all_random(){
 	//find start time	
 	struct timeval start, end;
 	gettimeofday(&start, NULL);	
@@ -212,8 +215,9 @@ double all_random(){
 
 	//find end time, calculate length, return
 	gettimeofday(&end, NULL);
-	double timeElapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec));
+	long seconds = end.tv_sec - start.tv_sec;
+	long microseconds = end.tv_usec - start.tv_usec;
+	long timeElapsed = ((seconds * 1000000) + microseconds);
 
 	return timeElapsed;
 }
@@ -227,7 +231,7 @@ double all_random(){
 //memory from the first 25 mallocs to 1650 bytes
 //free remaining
 
-double filler_1(){
+long workload_E(){
 	//find start time	
 	struct timeval start, end;
 	gettimeofday(&start, NULL);	
@@ -263,15 +267,16 @@ double filler_1(){
 
 	//find end time, calculate length, return
 	gettimeofday(&end, NULL);
-	double timeElapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec));
+	long seconds = end.tv_sec - start.tv_sec;
+	long microseconds = end.tv_usec - start.tv_usec;
+	long timeElapsed = ((seconds * 1000000) + microseconds);
 
 	return timeElapsed;
 }
 
 //F: Randomly sized mallocs until we are no longer able to malloc without 
 //going over 4096 bytes. Do maximum malloc size. Free all. Uses almost  
-double filler_2(){
+long workload_F(){
 	//find start time
 	struct timeval start, end;
 	gettimeofday(&start, NULL);	
@@ -312,8 +317,9 @@ double filler_2(){
 
 	//find end time, calculate length, return
 	gettimeofday(&end, NULL);
-	double timeElapsed = (end.tv_sec - start.tv_sec) + 
-              ((end.tv_usec - start.tv_usec));
+	long seconds = end.tv_sec - start.tv_sec;
+	long microseconds = end.tv_usec - start.tv_usec;
+	long timeElapsed = ((seconds * 1000000) + microseconds);
 
 	return timeElapsed;
 }
@@ -341,13 +347,12 @@ int main (int argc, char* argv[]){
 		sums[1] += malloc_store_free();
 		sums[2] += random_malloc_free_50();
 		sums[3] += all_random();
-		sums[4] += filler_1();
-		sums[5] += filler_2(); 
+		sums[4] += workload_E();
+		sums[5] += workload_F(); 
 	}
 
 
 	for(i = 0; i < 6; i++){
-		//printf("Sum %d = %f\n", i, sums[i]);
 		averages[i] = sums[i] / 100.0;
 		printf("Mean time for workload %c = %lf microseconds\n", ('A'+ i), averages[i]);
 	}
