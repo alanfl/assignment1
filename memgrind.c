@@ -347,7 +347,7 @@ int main (int argc, char* argv[]){
 		sums[2] += random_malloc_free_50();
 		sums[3] += all_random();
 		sums[4] += workload_E();
-		sums[5] += workload_F(); 
+		sums[5] += workload_F();
 	}
 
 
